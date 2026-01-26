@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, TrendingUp, AlertTriangle, CheckCircle2, Calculator } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Dashboard() {
