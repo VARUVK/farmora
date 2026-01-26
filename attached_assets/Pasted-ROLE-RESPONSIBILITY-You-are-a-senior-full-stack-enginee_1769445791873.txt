@@ -1,0 +1,318 @@
+ROLE & RESPONSIBILITY
+
+You are a senior full-stack engineer + product architect building a real startup MVP, not a demo.
+
+Your task is to design and implement the full Farmora application end-to-end with clean architecture, safe AI logic, and scalable structure.
+
+You must not ask follow-up questions.
+Make sensible engineering decisions where needed.
+
+PRODUCT OVERVIEW
+
+Farmora is a web-first agricultural intelligence platform for India.
+
+It helps:
+
+Farmers decide when, where, and how to sell crops
+
+Traders discover and connect with farmers
+
+Owner/Admin privately monitor platform activity
+
+The system must be trustworthy, explainable, scalable, and farmer-friendly.
+
+TARGET PLATFORM
+
+Web app (desktop + mobile browser)
+
+Built as a Startup MVP, not academic demo
+
+Must be portable and cloud-agnostic
+
+TECH STACK (MANDATORY)
+Frontend
+
+Next.js (React)
+
+Responsive UI
+
+Dashboard-based layout
+
+Language switcher:
+
+English (default)
+
+Tamil
+
+Hindi
+
+Backend
+
+FastAPI (Python)
+
+REST APIs
+
+Modular service structure
+
+Docker-ready
+
+Database
+
+Firebase Firestore (or equivalent NoSQL)
+
+Schema-like collections
+
+Authentication
+
+Mobile OTP login
+
+Role-based access control:
+
+farmer
+
+trader
+
+admin
+
+Admin routes must be hidden and private
+
+USER ROLES & FEATURES
+👨‍🌾 FARMER
+
+Register & login via OTP
+
+Select:
+
+State & district (India)
+
+Multiple crops
+
+View mandi prices
+
+Receive AI advisory:
+
+SELL / HOLD / WAIT
+
+Confidence %
+
+Risk level
+
+Clear reasons
+
+Scenario simulation:
+
+“If I sell in X days”
+
+Profit optimization:
+
+Input cost tracking
+
+Net profit estimation
+
+Discover traders (only if consent enabled)
+
+Receive notifications:
+
+In-app
+
+SMS
+
+WhatsApp (placeholder logic only)
+
+🧑‍💼 TRADER
+
+Register via OTP
+
+Select interested crops & regions
+
+Discover farmers (consent-based only)
+
+Share demand and contact interest
+
+View regional demand signals
+
+🛠️ ADMIN (OWNER ONLY)
+
+Private login
+
+Read-only dashboard
+
+View:
+
+Active users
+
+Crop trends
+
+Regional activity
+
+Notifications sent
+
+No business logic editing
+
+DATA SOURCES & INTELLIGENCE
+Market Prices
+
+Use real mandi price data where available
+
+If unavailable:
+
+Use estimated fallback
+
+Always show:
+
+Source
+
+Last updated time
+
+Confidence score
+
+Weather
+
+District-level weather
+
+Used in advisory and risk scoring
+
+AI ADVISORY SYSTEM (CRITICAL)
+
+AI must be safe, explainable, and conservative.
+
+Hard Rules
+
+Never guarantee profit
+
+Never hallucinate prices
+
+Never override farmer decision
+
+Always show uncertainty
+
+Decision Flow
+
+Deterministic logic first:
+
+Price trend
+
+Volatility
+
+Weather risk
+
+Crop perishability
+
+Demand signals
+
+AI enhances explanation and confidence scoring
+
+Advisory Output Format (STRICT)
+Recommendation: SELL / HOLD / WAIT
+Confidence: %
+Risk: LOW / MEDIUM / HIGH
+Reasons:
+- Reason 1
+- Reason 2
+- Reason 3
+
+SIMULATION & PROFIT ENGINE
+
+Allow user to simulate selling after N days
+
+Use:
+
+Historical trend
+
+Seasonal adjustment
+
+Weather impact
+
+Output:
+
+Expected price
+
+Expected profit
+
+Risk band
+
+NOTIFICATIONS
+
+Build a notification engine supporting:
+
+In-app
+
+SMS
+
+WhatsApp (placeholder only)
+
+WhatsApp logic must be abstracted so a real API can be plugged in later without refactoring.
+
+DATABASE STRUCTURE (MANDATORY COLLECTIONS)
+
+users
+
+farmers
+
+traders
+
+crops
+
+markets
+
+prices
+
+weather
+
+advisory
+
+simulation
+
+notifications
+
+metrics
+
+UI REQUIREMENTS
+
+Simple dashboards
+
+Charts for price trends
+
+Expandable profit & simulation panels
+
+Floating AI advisory chat panel
+
+Language toggle always visible
+
+Farmer-friendly wording
+
+NON-FUNCTIONAL REQUIREMENTS
+
+India-wide ready (no hardcoded regions)
+
+Clean folder structure
+
+Role-safe access
+
+Docker-ready backend
+
+Clear comments explaining logic
+
+Portable deployment (no vendor lock-in)
+
+FINAL OUTPUT EXPECTATION
+
+Generate:
+
+Backend code (FastAPI)
+
+Frontend code (Next.js)
+
+Database schema
+
+AI advisory logic
+
+Simulation & profit logic
+
+Notification placeholder
+
+Clear run instructions
+
+Do not ask questions.
+Do not skip details.
+Build like this will be used by real farmers
