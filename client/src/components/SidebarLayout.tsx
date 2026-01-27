@@ -1,16 +1,6 @@
-import { ReactNode } from "react";
+import { Sprout, BarChart3, MessageSquareText, Calculator, User, LogOut, Tractor, Menu } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { 
-  LayoutDashboard, 
-  TrendingUp, 
-  MessageSquareText, 
-  Calculator, 
-  Settings, 
-  Menu, 
-  Sprout,
-  LogOut,
-  User
-} from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
@@ -28,23 +18,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
 
-interface SidebarLayoutProps {
-  children: ReactNode;
-}
-
-export function SidebarLayout({ children }: SidebarLayoutProps) {
+export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
-  const { t, language, setLanguage } = useLanguage();
+  const { t, setLanguage, language } = useLanguage();
 
   const navItems = [
-    { href: "/", label: t('dashboard'), icon: LayoutDashboard },
-    { href: "/prices", label: t('prices'), icon: TrendingUp },
-    { href: "/advisory", label: t('advisory'), icon: MessageSquareText },
-    { href: "/simulations", label: t('simulations'), icon: Calculator },
-    { href: "/profile", label: t('settings'), icon: Settings },
+    { href: "/", icon: BarChart3, label: t('dashboard') },
+    { href: "/prices", icon: Tractor, label: t('marketPrices') },
+    { href: "/advisory", icon: MessageSquareText, label: t('advisory') },
+    { href: "/simulations", icon: Calculator, label: t('simulations') },
+    { href: "/profile", icon: User, label: t('profile') },
   ];
 
   const languages = [
@@ -58,7 +43,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 border-b bg-card">
         <div className="flex items-center gap-2">
-          <Sprout className="h-6 w-6 text-primary" />
+          <Tractor className="h-6 w-6 text-primary" />
           <span className="font-display font-bold text-xl text-primary">Farmora</span>
         </div>
         <Sheet>
@@ -69,7 +54,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
             <div className="p-6 flex items-center gap-2 border-b">
-              <Sprout className="h-6 w-6 text-primary" />
+              <Tractor className="h-6 w-6 text-primary" />
               <span className="font-display font-bold text-xl text-primary">Farmora</span>
             </div>
             <nav className="flex flex-col p-4 gap-2">
@@ -93,7 +78,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
       <aside className="hidden md:flex w-64 flex-col border-r bg-card h-screen sticky top-0">
         <div className="p-6 flex items-center gap-2 border-b">
           <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Sprout className="h-6 w-6 text-primary" />
+            <Tractor className="h-6 w-6 text-primary" />
           </div>
           <span className="font-display font-bold text-2xl text-primary">Farmora</span>
         </div>
@@ -115,7 +100,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
         <div className="p-4 border-t bg-muted/20">
           <div className="flex items-center gap-3 p-2 rounded-lg bg-card border shadow-sm mb-4">
              <Avatar className="h-10 w-10 border-2 border-primary/20">
-               <AvatarImage src={user?.profileImageUrl} />
+               <AvatarImage src={user?.profileImageUrl || undefined} />
                <AvatarFallback className="bg-primary/10 text-primary">
                  {user?.firstName?.[0] || <User className="h-4 w-4" />}
                </AvatarFallback>
@@ -124,7 +109,7 @@ export function SidebarLayout({ children }: SidebarLayoutProps) {
                <p className="text-sm font-medium truncate">{user?.firstName || 'User'}</p>
                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
              </div>
-             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => logout()}>
+             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive no-default-hover-elevate no-default-active-elevate" onClick={() => logout()}>
                <LogOut className="h-4 w-4" />
              </Button>
           </div>

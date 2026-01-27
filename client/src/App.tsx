@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-farm-data";
 import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 // Pages
 import Landing from "@/pages/Landing";
