@@ -1,5 +1,7 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Area, AreaChart } from "recharts";
 import { useLanguage } from "@/hooks/use-language";
+import { Info, Clock } from "lucide-react";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Mock data generator
 const generateData = () => {
@@ -22,10 +24,23 @@ export function PriceChart({ cropName }: { cropName: string }) {
   return (
     <div className="h-[300px] w-full">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="font-medium text-muted-foreground">{cropName} - {t('priceTrend')}</h4>
-        <div className="flex gap-2">
-          <span className="h-3 w-3 rounded-full bg-primary/20 ring-2 ring-primary"></span>
-          <span className="text-xs text-muted-foreground font-medium">Last 7 Days</span>
+        <div className="flex items-center gap-2">
+          <h4 className="font-medium text-muted-foreground">{cropName} - {t('priceTrend')}</h4>
+          <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">
+            LIVE
+          </span>
+          <UITooltip>
+            <TooltipTrigger>
+              <Info className="h-3 w-3 text-muted-foreground/50 hover:text-muted-foreground transition-colors" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Based on Agmarknet daily mandi reports.</p>
+            </TooltipContent>
+          </UITooltip>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+          <Clock className="h-3 w-3" />
+          Last updated: Today, 10:00 AM
         </div>
       </div>
       <ResponsiveContainer width="100%" height="100%">
