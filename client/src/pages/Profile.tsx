@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,19 +15,23 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, ShieldCheck } from "lucide-react";
+import { INDIAN_STATES_DISTRICTS, CROPS, SOIL_TYPES, IRRIGATION_TYPES } from "@/lib/location-data";
 
-// Simplified schema matching the backend partial update
+// Expanded schema for full farmer context
 const profileSchema = z.object({
   role: z.enum(["farmer", "trader", "admin"]),
   state: z.string().min(1, "State is required"),
   district: z.string().min(1, "District is required"),
   crops: z.array(z.string()).min(1, "Select at least one crop"),
   consentToShareContact: z.boolean().default(false),
+  soilType: z.string().optional(),
+  irrigationType: z.string().optional(),
+  landSize: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-const availableCrops = ["Paddy", "Wheat", "Maize", "Cotton", "Sugarcane", "Pulses", "Groundnut", "Turmeric"];
+const allCrops = Object.values(CROPS).flat();
 
 export default function Profile() {
   const { t } = useLanguage();
@@ -44,8 +48,14 @@ export default function Profile() {
       district: "",
       crops: [],
       consentToShareContact: false,
+      soilType: "",
+      irrigationType: "",
+      landSize: "",
     },
   });
+
+  const selectedState = form.watch("state");
+  const districts = selectedState ? INDIAN_STATES_DISTRICTS[selectedState] || [] : [];
 
   // Populate form when data loads
   useEffect(() => {
@@ -56,23 +66,29 @@ export default function Profile() {
         district: profile.district || "",
         crops: profile.crops || [],
         consentToShareContact: (profile.metadata as any)?.consentToShareContact || false,
+        soilType: (profile.metadata as any)?.soilType || "",
+        irrigationType: (profile.metadata as any)?.irrigationType || "",
+        landSize: (profile.metadata as any)?.landSize || "",
       });
     }
   }, [profile, form]);
 
   const onSubmit = async (values: ProfileFormValues) => {
     try {
-      const { consentToShareContact, ...rest } = values;
+      const { consentToShareContact, soilType, irrigationType, landSize, ...rest } = values;
       await updateProfile.mutateAsync({
         ...rest,
         metadata: { 
           ...(profile?.metadata as any || {}),
-          consentToShareContact 
+          consentToShareContact,
+          soilType,
+          irrigationType,
+          landSize
         }
       });
       toast({
         title: "Profile Updated",
-        description: "Your settings have been saved successfully.",
+        description: "Your agricultural context has been saved successfully.",
       });
     } catch (error) {
       toast({
@@ -95,10 +111,10 @@ export default function Profile() {
 
   return (
     <SidebarLayout>
-      <div className="max-w-2xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-8 pb-12">
         <div>
           <h1 className="text-3xl font-display font-bold text-primary">{t('profile')}</h1>
-          <p className="text-muted-foreground">Manage your account and farm preferences.</p>
+          <p className="text-muted-foreground">Manage your account and agricultural context for AI advisory.</p>
         </div>
 
         <Card>
@@ -115,7 +131,7 @@ export default function Profile() {
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>Role</Label>
@@ -137,15 +153,18 @@ export default function Profile() {
                   <Label>State</Label>
                   <Select 
                     value={form.watch("state")} 
-                    onValueChange={(val) => form.setValue("state", val)}
+                    onValueChange={(val) => {
+                      form.setValue("state", val);
+                      form.setValue("district", ""); // Reset district on state change
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select State" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Tamil Nadu">Tamil Nadu</SelectItem>
-                      <SelectItem value="Punjab">Punjab</SelectItem>
-                      <SelectItem value="Maharashtra">Maharashtra</SelectItem>
+                      {Object.keys(INDIAN_STATES_DISTRICTS).sort().map(state => (
+                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {form.formState.errors.state && (
@@ -155,36 +174,95 @@ export default function Profile() {
 
                 <div className="space-y-2">
                   <Label>District</Label>
-                  <Input {...form.register("district")} placeholder="e.g. Tirunelveli" />
+                  <Select 
+                    value={form.watch("district")} 
+                    onValueChange={(val) => form.setValue("district", val)}
+                    disabled={!selectedState}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={selectedState ? "Select District" : "Select State first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {districts.map(district => (
+                        <SelectItem key={district} value={district}>{district}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                    {form.formState.errors.district && (
                     <p className="text-xs text-destructive">{form.formState.errors.district.message}</p>
                   )}
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Soil Type</Label>
+                  <Select 
+                    value={form.watch("soilType")} 
+                    onValueChange={(val) => form.setValue("soilType", val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Soil Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOIL_TYPES.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Irrigation Type</Label>
+                  <Select 
+                    value={form.watch("irrigationType")} 
+                    onValueChange={(val) => form.setValue("irrigationType", val)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Irrigation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {IRRIGATION_TYPES.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Land Size (Acres)</Label>
+                  <Input {...form.register("landSize")} type="number" step="0.1" placeholder="e.g. 5.5" />
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <Label>Your Crops (Select all that apply)</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {availableCrops.map((crop) => (
-                    <div key={crop} className="flex items-center space-x-2 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                      <Checkbox 
-                        id={crop} 
-                        checked={form.watch("crops")?.includes(crop)}
-                        onCheckedChange={(checked) => {
-                          const current = form.getValues("crops") || [];
-                          if (checked) {
-                            form.setValue("crops", [...current, crop]);
-                          } else {
-                            form.setValue("crops", current.filter(c => c !== crop));
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={crop}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full"
-                      >
-                        {crop}
-                      </label>
+              <div className="space-y-4">
+                <Label>Crops Grown (Select all that apply)</Label>
+                <div className="grid grid-cols-1 gap-6">
+                  {Object.entries(CROPS).map(([category, crops]) => (
+                    <div key={category} className="space-y-3">
+                      <h4 className="text-sm font-semibold text-muted-foreground">{category}</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {crops.map((crop) => (
+                          <div key={crop} className="flex items-center space-x-2 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                            <Checkbox 
+                              id={crop} 
+                              checked={form.watch("crops")?.includes(crop)}
+                              onCheckedChange={(checked) => {
+                                const current = form.getValues("crops") || [];
+                                if (checked) {
+                                  form.setValue("crops", [...current, crop]);
+                                } else {
+                                  form.setValue("crops", current.filter(c => c !== crop));
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={crop}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full"
+                            >
+                              {crop}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -216,7 +294,7 @@ export default function Profile() {
               <div className="pt-4 flex justify-end">
                 <Button type="submit" disabled={updateProfile.isPending} className="gap-2">
                   {updateProfile.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Save Changes
+                  Save Agricultural Context
                 </Button>
               </div>
             </form>
