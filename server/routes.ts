@@ -5,7 +5,7 @@ import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { isAuthenticated } from "./replit_integrations/auth";
+import { isAuthenticated, requireFarmer } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -47,7 +47,7 @@ export async function registerRoutes(
   });
 
   // Market Prices
-  app.get(api.marketPrices.list.path, async (req, res) => {
+  app.get(api.marketPrices.list.path, isAuthenticated, async (req, res) => {
     const filters = {
       crop: req.query.crop as string,
       state: req.query.state as string,
@@ -58,13 +58,13 @@ export async function registerRoutes(
   });
 
   // Simulations
-  app.get(api.simulations.list.path, isAuthenticated, async (req: any, res) => {
+  app.get(api.simulations.list.path, requireFarmer, async (req: any, res) => {
     const userId = req.user!.claims.sub;
     const sims = await storage.getSimulations(userId);
     res.json(sims);
   });
 
-  app.post(api.simulations.create.path, isAuthenticated, async (req: any, res) => {
+  app.post(api.simulations.create.path, requireFarmer, async (req: any, res) => {
     const userId = req.user!.claims.sub;
     try {
       const input = api.simulations.create.input.parse(req.body);

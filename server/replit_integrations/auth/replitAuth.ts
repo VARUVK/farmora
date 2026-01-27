@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
+import { storage } from "../../storage";
 
 const getOidcConfig = memoize(
   async () => {
@@ -158,3 +159,21 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return;
   }
 };
+
+export const requireRole = (role: string): RequestHandler => {
+  return async (req: any, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const userId = req.user.claims.sub;
+    const profile = await storage.getProfile(userId);
+    if (!profile || profile.role !== role) {
+      return res.status(403).json({ message: "Forbidden: Required role " + role });
+    }
+    next();
+  };
+};
+
+export const requireFarmer = requireRole("farmer");
+export const requireTrader = requireRole("trader");
+export const requireAdmin = requireRole("admin");
