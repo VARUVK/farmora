@@ -1,9 +1,10 @@
 import { 
   users, profiles, marketPrices, simulations, notifications,
-  type User, type InsertUser, type Profile, type InsertProfile,
+  type User, type Profile, type InsertProfile,
   type MarketPrice, type InsertMarketPrice, type Simulation, type InsertSimulation,
   type Notification, type InsertNotification
 } from "@shared/schema";
+import { type InsertUser } from "@shared/models/auth";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 

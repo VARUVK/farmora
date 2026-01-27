@@ -138,7 +138,7 @@ export default function Advisory() {
                         <Bot className="h-6 w-6" />
                       </div>
                     ) : (
-                      <AvatarImage src={user?.profileImageUrl} />
+                      <AvatarImage src={user?.profileImageUrl || undefined} />
                     )}
                     <AvatarFallback>{msg.role === 'assistant' ? 'AI' : 'ME'}</AvatarFallback>
                   </Avatar>

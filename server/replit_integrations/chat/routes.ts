@@ -114,7 +114,10 @@ export function registerChatRoutes(app: Express): void {
       // 1. Calculate deterministic logic if context is provided
       let advisoryContext = "";
       if (crop && state && district) {
-        const logic = await calculateAdvisoryLogic(crop, state, district);
+        const cropStr = Array.isArray(crop) ? crop[0] : crop;
+        const stateStr = Array.isArray(state) ? state[0] : state;
+        const districtStr = Array.isArray(district) ? district[0] : district;
+        const logic = await calculateAdvisoryLogic(cropStr, stateStr, districtStr);
         advisoryContext = `[MARKET_LOGIC]: Trend: ${logic.trend}, Volatility: ${logic.volatility}, Suggested Action: ${logic.recommendation}, Confidence: ${logic.confidence}%, Basis: ${logic.reason}. Explain this to the farmer clearly without guaranteeing profit.`;
       }
 

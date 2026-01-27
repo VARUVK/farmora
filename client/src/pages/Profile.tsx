@@ -104,7 +104,7 @@ export default function Profile() {
         <Card>
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
             <Avatar className="h-20 w-20 border-4 border-background shadow-md">
-              <AvatarImage src={user?.profileImageUrl} />
+              <AvatarImage src={user?.profileImageUrl || undefined} />
               <AvatarFallback className="text-xl bg-primary/10 text-primary">
                 {user?.firstName?.[0]}
               </AvatarFallback>
