@@ -26,28 +26,42 @@ export default function Simulations() {
   const [date, setDate] = useState("");
 
   const handleCreate = async () => {
-    if (!crop || !quantity || !date) return;
+    if (!crop || !quantity || !date || !profile) return;
 
-    // Mock calculation logic for the MVP
     const quantityNum = Number(quantity);
-    const expectedPrice = 2400; // Mock base price
-    const variance = Math.random() * 0.2; // +/- 10%
-    const predictedPrice = expectedPrice * (1 + (Math.random() > 0.5 ? variance : -variance));
-    const totalRevenue = quantityNum * predictedPrice;
-    const estimatedCost = quantityNum * 1500; // Mock cost
+    const saleDate = new Date(date);
+    const today = new Date();
+    
+    // Logic: Seasonal adjustment based on month
+    const month = saleDate.getMonth();
+    // Simple seasonality factor (example: monsoon peaks or harvest dips)
+    const seasonality = [0.9, 0.95, 1.1, 1.2, 1.15, 1.0, 0.9, 0.85, 0.9, 1.05, 1.1, 1.0][month];
+    
+    const basePrice = 2400; // Mandi base
+    const priceStability = 0.95 + (Math.random() * 0.1); // Market volatility
+    const predictedPrice = basePrice * seasonality * priceStability;
+    
+    // Weather risk reduction (simulated based on forecast distance)
+    const daysOut = Math.floor((saleDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const weatherRiskFactor = daysOut > 30 ? 0.85 : 0.95; // Higher risk further out
+    
+    const totalRevenue = quantityNum * predictedPrice * weatherRiskFactor;
+    const estimatedCost = quantityNum * 1450; // Input cost avg
     const profit = totalRevenue - estimatedCost;
-    const risk = profit > 10000 ? "Low" : profit > 0 ? "Medium" : "High";
+    
+    const risk = profit > 25000 ? "Low" : profit > 0 ? "Medium" : "High";
 
     try {
       await createSimulation.mutateAsync({
+        userId: profile.userId,
         crop,
-        inputs: { quantity: quantityNum, date },
+        inputs: { quantity: quantityNum, date, costPerQuintal: 1450 } as any,
         results: { 
           predictedPrice: Math.round(predictedPrice), 
           expectedProfit: Math.round(profit),
           riskLevel: risk,
-          confidence: 0.85 
-        }
+          confidence: Math.round((daysOut > 30 ? 0.7 : 0.9) * 100) / 100 
+        } as any
       });
       setIsDialogOpen(false);
       // Reset form
@@ -81,7 +95,7 @@ export default function Simulations() {
               <DialogHeader>
                 <DialogTitle>{t('createSimulation')}</DialogTitle>
                 <DialogDescription>
-                  Enter your expected harvest details to get a profit forecast.
+                  Enter your expected harvest details to get a profit forecast based on seasonal trends and weather risk.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -92,7 +106,7 @@ export default function Simulations() {
                       <SelectValue placeholder="Select crop" />
                     </SelectTrigger>
                     <SelectContent>
-                      {crops.map(c => (
+                      {crops.map((c: string) => (
                         <SelectItem key={c} value={c}>{c}</SelectItem>
                       ))}
                     </SelectContent>
@@ -131,7 +145,7 @@ export default function Simulations() {
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {[1,2,3].map(i => <div key={i} className="h-64 bg-muted/20 animate-pulse rounded-2xl" />)}
            </div>
-        ) : simulations?.length === 0 ? (
+        ) : !simulations || (Array.isArray(simulations) && simulations.length === 0) ? (
           <div className="text-center py-20 bg-muted/20 rounded-3xl border-2 border-dashed">
             <Calculator className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium text-foreground">No Simulations Yet</h3>
@@ -140,7 +154,7 @@ export default function Simulations() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {simulations?.map((sim: any) => (
+            {Array.isArray(simulations) && simulations.map((sim: any) => (
               <Card key={sim.id} className="hover:shadow-lg transition-all duration-300 border-primary/10 group">
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">

@@ -1,9 +1,10 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { useProfile } from "@/hooks/use-farm-data";
 import { Loader2 } from "lucide-react";
 
 // Pages
@@ -17,8 +18,19 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { user, isLoading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const [location, setLocation] = useLocation();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && user && !profileLoading) {
+      const hasCompletedOnboarding = profile && profile.state && profile.district && profile.crops && profile.crops.length > 0;
+      if (!hasCompletedOnboarding && location !== "/profile") {
+        setTimeout(() => setLocation("/profile"), 0);
+      }
+    }
+  }, [user, profile, profileLoading, isLoading, location, setLocation]);
+
+  if (isLoading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

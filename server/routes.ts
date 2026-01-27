@@ -92,6 +92,28 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  // Tasks API
+  app.get("/api/tasks", isAuthenticated, async (req: any, res) => {
+    const userId = req.user!.claims.sub;
+    const userTasks = await storage.getTasks(userId);
+    res.json(userTasks);
+  });
+
+  app.post("/api/tasks", isAuthenticated, async (req: any, res) => {
+    const userId = req.user!.claims.sub;
+    const newTask = await storage.createTask({
+      ...req.body,
+      userId,
+      dueDate: new Date(req.body.dueDate)
+    });
+    res.status(201).json(newTask);
+  });
+
+  app.patch("/api/tasks/:id", isAuthenticated, async (req: any, res) => {
+    const updated = await storage.updateTask(Number(req.params.id), req.body);
+    res.json(updated);
+  });
+
   // Seed Data (Safe to call on every startup, checks for existing data internally or we can add a check)
   await seedDatabase();
 
@@ -115,4 +137,8 @@ async function seedDatabase() {
       await storage.addMarketPrice(p);
     }
   }
+
+  // Seed tasks if empty
+  // Note: Since we need a userId, we'll skip seeding tasks in the global seedDatabase
+  // or only seed for specific users if needed.
 }

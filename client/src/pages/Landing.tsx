@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Sprout, BarChart3, MessageSquare, ShieldCheck, ArrowRight } from "lucide-react";
+import { Tractor, BarChart3, MessageSquare, ShieldCheck, ArrowRight } from "lucide-react";
 
 export default function Landing() {
   return (
@@ -9,7 +9,7 @@ export default function Landing() {
       <header className="border-b bg-card/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sprout className="h-8 w-8 text-primary" />
+            <Tractor className="h-8 w-8 text-primary" />
             <span className="font-display font-bold text-2xl text-primary">Farmora</span>
           </div>
           <div className="flex gap-4">
@@ -76,10 +76,10 @@ export default function Landing() {
       <footer className="bg-muted/30 py-12 px-6 border-t">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6 text-muted-foreground text-sm">
           <div className="flex items-center gap-2">
-            <Sprout className="h-5 w-5" />
-            <span className="font-bold">Farmora</span>
+            <Tractor className="h-5 w-5" />
+            <span className="font-bold text-foreground">Farmora</span>
           </div>
-          <p>© 2025 Farmora. Built for Indian Farmers.</p>
+          <p>© 2026 Farmora Intelligence. Built for the Modern Indian Farmer.</p>
         </div>
       </footer>
     </div>

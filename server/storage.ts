@@ -1,12 +1,13 @@
 import { 
-  users, profiles, marketPrices, simulations, notifications,
+  users, profiles, marketPrices, simulations, notifications, tasks,
   type User, type Profile, type InsertProfile,
   type MarketPrice, type InsertMarketPrice, type Simulation, type InsertSimulation,
-  type Notification, type InsertNotification
+  type Notification, type InsertNotification,
+  type Task, type InsertTask
 } from "@shared/schema";
-import { type InsertUser } from "@shared/models/auth";
+import { type UpsertUser as InsertUser } from "@shared/models/auth";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // User & Profile
@@ -28,24 +29,25 @@ export interface IStorage {
   // Notifications
   getNotifications(userId: string): Promise<Notification[]>;
   markNotificationRead(id: number): Promise<Notification>;
+
+  // Tasks
+  getTasks(userId: string): Promise<Task[]>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: number, updates: Partial<InsertTask>): Promise<Task>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User & Profile (Delegated to Auth module mostly, but kept here for completeness if needed)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    // Note: 'username' might not exist on the auth-generated user table which uses 'email'. 
-    // Adapting for safety:
     const [user] = await db.select().from(users).where(eq(users.email, username)); 
     return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    // This is mostly handled by the Auth integration, but implementing for interface compliance
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
@@ -56,16 +58,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProfile(userId: string, profileData: Partial<InsertProfile>): Promise<Profile> {
-    // Check if profile exists
     const existing = await this.getProfile(userId);
     if (existing) {
       const [updated] = await db.update(profiles)
-        .set({ ...profileData }) // Remove updatedAt if not in schema or handle it
+        .set({ ...profileData })
         .where(eq(profiles.userId, userId))
         .returning();
       return updated;
     } else {
-      // Create if not exists
       const [created] = await db.insert(profiles)
         .values({ userId, ...profileData } as InsertProfile)
         .returning();
@@ -75,12 +75,9 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketPrices(filters?: { crop?: string, state?: string, district?: string }): Promise<MarketPrice[]> {
     let query = db.select().from(marketPrices).orderBy(desc(marketPrices.date));
-    
-    if (filters) {
-      if (filters.crop) query.where(eq(marketPrices.crop, filters.crop));
-      // Add other filters as needed (drizzle query builder handles simple where clauses easily, complex ones need `and()`)
+    if (filters && filters.crop) {
+      query.where(eq(marketPrices.crop, filters.crop));
     }
-    
     return await query;
   }
 
@@ -110,6 +107,25 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(notifications)
       .set({ read: true })
       .where(eq(notifications.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getTasks(userId: string): Promise<Task[]> {
+    return await db.select().from(tasks)
+      .where(eq(tasks.userId, userId))
+      .orderBy(desc(tasks.dueDate));
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const [newTask] = await db.insert(tasks).values(task).returning();
+    return newTask;
+  }
+
+  async updateTask(id: number, updates: Partial<InsertTask>): Promise<Task> {
+    const [updated] = await db.update(tasks)
+      .set(updates)
+      .where(eq(tasks.id, id))
       .returning();
     return updated;
   }
