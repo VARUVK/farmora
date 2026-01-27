@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ShieldCheck } from "lucide-react";
 
 // Simplified schema matching the backend partial update
 const profileSchema = z.object({
@@ -22,6 +22,7 @@ const profileSchema = z.object({
   state: z.string().min(1, "State is required"),
   district: z.string().min(1, "District is required"),
   crops: z.array(z.string()).min(1, "Select at least one crop"),
+  consentToShareContact: z.boolean().default(false),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -42,6 +43,7 @@ export default function Profile() {
       state: "",
       district: "",
       crops: [],
+      consentToShareContact: false,
     },
   });
 
@@ -53,13 +55,21 @@ export default function Profile() {
         state: profile.state || "",
         district: profile.district || "",
         crops: profile.crops || [],
+        consentToShareContact: (profile.metadata as any)?.consentToShareContact || false,
       });
     }
   }, [profile, form]);
 
-  const onSubmit = async (data: ProfileFormValues) => {
+  const onSubmit = async (values: ProfileFormValues) => {
     try {
-      await updateProfile.mutateAsync(data);
+      const { consentToShareContact, ...rest } = values;
+      await updateProfile.mutateAsync({
+        ...rest,
+        metadata: { 
+          ...(profile?.metadata as any || {}),
+          consentToShareContact 
+        }
+      });
       toast({
         title: "Profile Updated",
         description: "Your settings have been saved successfully.",
@@ -181,6 +191,26 @@ export default function Profile() {
                 {form.formState.errors.crops && (
                   <p className="text-xs text-destructive">{form.formState.errors.crops.message}</p>
                 )}
+              </div>
+
+              <div className="space-y-4 border-t pt-6">
+                <div className="flex items-start space-x-3 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                  <Checkbox 
+                    id="consentToShareContact" 
+                    checked={form.watch("consentToShareContact")}
+                    onCheckedChange={(checked) => form.setValue("consentToShareContact", !!checked)}
+                    className="mt-1"
+                  />
+                  <div className="space-y-1">
+                    <Label htmlFor="consentToShareContact" className="text-blue-900 flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-blue-600" />
+                      Consent to share contact details
+                    </Label>
+                    <p className="text-xs text-blue-700/70">
+                      When enabled, verified traders can see your contact number to discuss deals. Your exact location remains private.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="pt-4 flex justify-end">

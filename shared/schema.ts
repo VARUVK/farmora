@@ -17,7 +17,11 @@ export const profiles = pgTable("profiles", {
   // For farmers: list of crops they grow. For traders: list of crops they buy.
   crops: text("crops").array(), 
   // Store any additional role-specific data here
-  metadata: jsonb("metadata"),
+  metadata: jsonb("metadata").$type<{
+    consentToShareContact?: boolean;
+    phone?: string;
+    location?: string;
+  }>(),
 });
 
 export const marketPrices = pgTable("market_prices", {
