@@ -16,7 +16,7 @@ class AuthStorage implements IAuthStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
+    await db
       .insert(users)
       .values(userData)
       .onConflictDoUpdate({
@@ -25,8 +25,9 @@ class AuthStorage implements IAuthStorage {
           ...userData,
           updatedAt: new Date(),
         },
-      })
-      .returning();
+      });
+    const [user] = await db.select().from(users).where(eq(users.id, userData.id));
+    if (!user) throw new Error("upsertUser: user not found after insert");
     return user;
   }
 }

@@ -4,10 +4,15 @@ import { chatStorage } from "./storage";
 import { storage } from "../../storage";
 import { isAuthenticated, requireFarmer } from "../auth";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+/** Lazy OpenAI client: only created when API key is set (optional for local demo). */
+function getOpenAI(): OpenAI | null {
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  });
+}
 
 /**
  * Calculates deterministic advisory logic before AI explanation.
@@ -144,27 +149,33 @@ export function registerChatRoutes(app: Express): void {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
 
-      // Stream response from OpenAI
-      const stream = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: chatMessages,
-        stream: true,
-        max_completion_tokens: 2048,
-      });
+      const openai = getOpenAI();
+      let fullResponse: string;
 
-      let fullResponse = "";
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || "";
-        if (content) {
-          fullResponse += content;
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      if (openai) {
+        const stream = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: chatMessages,
+          stream: true,
+          max_completion_tokens: 2048,
+        });
+        fullResponse = "";
+        for await (const chunk of stream) {
+          const content = chunk.choices[0]?.delta?.content || "";
+          if (content) {
+            fullResponse += content;
+            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+          }
         }
+      } else {
+        // Local demo: no API key — return deterministic advisory echo
+        fullResponse = advisoryContext
+          ? `${advisoryContext}\n\n(Summarized for you — run with OPENAI_API_KEY set for full AI responses.)`
+          : "Advisory is available when you provide crop, state, and district. This demo runs without an API key.";
+        res.write(`data: ${JSON.stringify({ content: fullResponse })}\n\n`);
       }
 
-      // Save assistant message
       await chatStorage.createMessage(conversationId, "assistant", fullResponse);
-
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
       res.end();
     } catch (error) {

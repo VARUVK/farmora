@@ -73,12 +73,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getMarketPrices(filters?: { crop?: string, state?: string, district?: string }): Promise<MarketPrice[]> {
-    let query = db.select().from(marketPrices).orderBy(desc(marketPrices.date));
-    if (filters && filters.crop) {
-      query.where(eq(marketPrices.crop, filters.crop));
-    }
-    return await query;
+  async getMarketPrices(filters?: { crop?: string; state?: string; district?: string }): Promise<MarketPrice[]> {
+    const conditions = [];
+    if (filters?.crop) conditions.push(eq(marketPrices.crop, filters.crop));
+    if (filters?.state) conditions.push(eq(marketPrices.state, filters.state));
+    if (filters?.district) conditions.push(eq(marketPrices.district, filters.district));
+    const base = db.select().from(marketPrices).orderBy(desc(marketPrices.date));
+    if (conditions.length === 0) return await base;
+    return await base.where(and(...conditions));
   }
 
   async addMarketPrice(price: InsertMarketPrice): Promise<MarketPrice> {

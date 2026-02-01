@@ -32,7 +32,7 @@ export const chatStorage: IChatStorage = {
   },
 
   async getMessagesByConversation(conversationId: number) {
-    return db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(messages.createdAt);
+    return db.select().from(messages).where(eq(messages.conversationId, conversationId)).orderBy(desc(messages.createdAt));
   },
 
   async createMessage(conversationId: number, role: string, content: string) {

@@ -1,4 +1,9 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, doublePrecision } from "drizzle-orm/pg-core";
+import {
+  integer,
+  real,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -8,64 +13,60 @@ export * from "./models/chat";
 
 import { users } from "./models/auth";
 
-export const profiles = pgTable("profiles", {
-  id: serial("id").primaryKey(),
+export const profiles = sqliteTable("profiles", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").notNull().references(() => users.id),
   role: text("role", { enum: ["farmer", "trader", "admin"] }).default("farmer").notNull(),
   state: text("state"),
   district: text("district"),
-  // For farmers: list of crops they grow. For traders: list of crops they buy.
-  crops: text("crops").array(), 
-  // Store any additional role-specific data here
-  metadata: jsonb("metadata").$type<{
+  crops: text("crops", { mode: "json" }).$type<string[]>(),
+  metadata: text("metadata", { mode: "json" }).$type<{
     consentToShareContact?: boolean;
     phone?: string;
     location?: string;
   }>(),
 });
 
-export const marketPrices = pgTable("market_prices", {
-  id: serial("id").primaryKey(),
+export const marketPrices = sqliteTable("market_prices", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   crop: text("crop").notNull(),
   state: text("state").notNull(),
   district: text("district").notNull(),
   market: text("market").notNull(),
-  price: integer("price").notNull(), // Price per quintal
+  price: integer("price").notNull(),
   currency: text("currency").default("INR"),
-  date: timestamp("date").defaultNow().notNull(),
-  source: text("source").notNull(), // e.g., "Agmarknet", "Manual"
-  confidenceScore: doublePrecision("confidence_score").default(1.0),
+  date: integer("date", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  source: text("source").notNull(),
+  confidenceScore: real("confidence_score").default(1.0),
 });
 
-export const simulations = pgTable("simulations", {
-  id: serial("id").primaryKey(),
+export const simulations = sqliteTable("simulations", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").notNull().references(() => users.id),
   crop: text("crop").notNull(),
-  // Input parameters for the simulation
-  inputs: jsonb("inputs").notNull(),
-  // Result of the simulation
-  results: jsonb("results").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  inputs: text("inputs", { mode: "json" }).notNull(),
+  results: text("results", { mode: "json" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
-export const notifications = pgTable("notifications", {
-  id: serial("id").primaryKey(),
+export const notifications = sqliteTable("notifications", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").notNull().references(() => users.id),
-  type: text("type").notNull(), // "advisory", "price_alert", "system"
+  type: text("type").notNull(),
   message: text("message").notNull(),
-  read: boolean("read").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  read: integer("read", { mode: "boolean" }).default(false).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
-export const tasks = pgTable("tasks", {
-  id: serial("id").primaryKey(),
+export const tasks = sqliteTable("tasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
-  completed: boolean("completed").default(false).notNull(),
-  category: text("category").notNull(), // "fertilizer", "irrigation", "pest_check", "market"
-  dueDate: timestamp("due_date").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completed: integer("completed", { mode: "boolean" }).default(false).notNull(),
+  category: text("category").notNull(),
+  dueDate: integer("due_date", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
 
 export const tasksRelations = relations(tasks, ({ one }) => ({
