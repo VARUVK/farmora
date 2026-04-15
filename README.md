@@ -117,9 +117,6 @@ SESSION_SECRET=your_random_secret_string
 PORT=5000
 ```
 
-> ⚠️ **Never commit your `.env` file.** It is already in `.gitignore`.
-
----
 
 ## 📜 Available Scripts
 
