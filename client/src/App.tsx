@@ -10,6 +10,7 @@ import { useEffect } from "react";
 
 // Pages
 import Landing from "@/pages/Landing";
+import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import Prices from "@/pages/Prices";
 import Advisory from "@/pages/Advisory";
@@ -31,7 +32,7 @@ function Router() {
     }
   }, [user, profile, profileLoading, isLoading, location, setLocation]);
 
-  if (isLoading || (user && profileLoading)) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -39,8 +40,18 @@ function Router() {
     );
   }
 
+  // Define allowed routes based on auth state
   if (!user) {
-    return <Landing />;
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/auth" component={AuthPage} />
+        <Route component={() => {
+          useEffect(() => { setLocation("/auth"); }, []);
+          return null;
+        }} />
+      </Switch>
+    );
   }
 
   return (

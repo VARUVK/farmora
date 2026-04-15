@@ -44,8 +44,6 @@ export default function Advisory() {
     setIsLoading(true);
 
     try {
-      // In a real app, we would use an SSE hook to stream from /api/conversations/:id/messages
-      // For this demo, we'll simulate the backend streaming logic with deterministic advisory
       
       const response = await fetch('/api/conversations', {
         method: 'POST',
@@ -56,7 +54,6 @@ export default function Advisory() {
       if (!response.ok) throw new Error("Failed to start conversation");
       const conversation = await response.json();
 
-      // Simulate streaming interaction with deterministic logic injected
       const msgResponse = await fetch(`/api/conversations/${conversation.id}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +67,6 @@ export default function Advisory() {
 
       if (!msgResponse.ok) throw new Error("Failed to fetch advisory");
 
-      // Simple streaming simulation for the UI
       const reader = msgResponse.body?.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = "";

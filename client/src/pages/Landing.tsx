@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tractor, BarChart3, MessageSquare, ShieldCheck, ArrowRight } from "lucide-react";
 
 export default function Landing() {
@@ -14,10 +15,10 @@ export default function Landing() {
           </div>
           <div className="flex gap-4">
             <Button variant="ghost" asChild>
-              <a href="/api/login">Log In</a>
+              <Link href="/auth">Log In</Link>
             </Button>
             <Button asChild className="shadow-lg shadow-primary/20">
-              <a href="/api/login">Get Started</a>
+              <Link href="/auth">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -38,9 +39,9 @@ export default function Landing() {
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Button size="lg" className="h-14 px-8 text-lg rounded-full shadow-xl shadow-primary/25 hover:shadow-2xl hover:scale-105 transition-all" asChild>
-              <a href="/api/login">
+              <Link href="/auth">
                 Start Farming Smarter <ArrowRight className="ml-2 h-5 w-5" />
-              </a>
+              </Link>
             </Button>
             <Button size="lg" variant="outline" className="h-14 px-8 text-lg rounded-full border-2 hover:bg-muted" asChild>
               <a href="#features">Learn More</a>
