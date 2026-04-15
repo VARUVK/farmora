@@ -58,9 +58,6 @@ FARMORA/
 │   ├── routes.ts            # All API route handlers
 │   ├── storage.ts           # Database operations (IStorage interface)
 │   ├── db.ts                # SQLite connection via Drizzle
-│   └── replit_integrations/
-│       ├── auth/            # Passport.js session authentication
-│       └── chat/            # OpenAI SSE streaming chat routes
 ├── shared/                  # Shared between client and server
 │   ├── schema.ts            # Drizzle table definitions + TypeScript types + Zod schemas
 │   ├── routes.ts            # API route contracts (path, method, input schema)
@@ -81,7 +78,7 @@ FARMORA/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/YOUR_USERNAME/farmora.git
+git clone https://github.com/VARUVK/farmora.git
 cd farmora
 
 # 2. Install dependencies
@@ -152,7 +149,7 @@ PORT=5000
 ## 🔐 Authentication Flow
 
 1. User visits the app → Landing page shown
-2. User logs in → Passport.js creates a session
+2. User logs in → Secure Passport.js session created
 3. Session cookie sent to browser automatically on every request
 4. `isAuthenticated` middleware protects all `/api/*` routes
 5. On login, if profile is incomplete → auto-redirected to `/profile`
@@ -215,17 +212,6 @@ To add a new language: add a new key to the `translations` object in `use-langua
 - [ ] SMS notifications via Twilio for farmers without smartphones
 - [ ] Persistent chat history across sessions
 - [ ] Unit tests with Vitest + Playwright E2E tests
-
----
-
-## 👨‍💻 Author
-
-Built as a full-stack TypeScript project demonstrating:
-- Monorepo architecture with shared type-safe contract layer
-- SSE-based AI streaming
-- Drizzle ORM schema-first development
-- Session authentication with Passport.js
-- Multilingual React application with Zustand persistence
 
 ---
 
