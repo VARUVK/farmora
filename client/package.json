@@ -57,6 +57,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "zod": "^3.25.76",
+    "drizzle-zod": "^0.7.1",
     "zustand": "^5.0.10"
   },
   "devDependencies": {
