@@ -3,19 +3,30 @@ import type { User } from "@shared/models/auth";
 import { resolveUrl } from "@/lib/queryClient";
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch(resolveUrl("/api/user"), {
-    credentials: "include",
-  });
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
-  if (response.status === 401) {
+    const response = await fetch(resolveUrl("/api/user"), {
+      credentials: "include",
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (response.status === 401) {
+      return null;
+    }
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.json();
+  } catch {
+    // Network error, timeout, or server down — treat as "not logged in"
     return null;
   }
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
 }
 
 export function useAuth() {
