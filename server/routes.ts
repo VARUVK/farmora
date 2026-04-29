@@ -87,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await storage.createMessage(conversationId, "user", content);
     
     const messages = await storage.getMessagesByConversation(conversationId);
-    const chatMessages = messages.map(m => ({
+    const chatMessages = messages.map((m: any) => ({
       role: m.role as "user" | "assistant",
       content: m.content
     }));
