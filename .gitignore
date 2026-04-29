@@ -41,3 +41,6 @@ yarn-error.log*
 .eslintcache
 .replit
 replit.nix
+
+.vercel
+.env*.local

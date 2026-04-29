@@ -44,6 +44,7 @@ export function useAuth() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
+        credentials: "include",
       });
       if (!resp.ok) throw new Error("Invalid username or password");
       return resp.json();
@@ -59,6 +60,7 @@ export function useAuth() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(userData),
+        credentials: "include",
       });
       if (!resp.ok) throw new Error("Registration failed");
       return resp.json();
@@ -70,7 +72,7 @@ export function useAuth() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await fetch(resolveUrl("/api/logout"), { method: "POST" });
+      await fetch(resolveUrl("/api/logout"), { method: "POST", credentials: "include" });
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
