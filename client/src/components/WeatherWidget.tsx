@@ -14,22 +14,9 @@ export function WeatherWidget() {
   const { data: weather, isLoading, isError } = useQuery({
     queryKey: ["/api/weather", district, state],
     queryFn: async () => {
-      // In a real app, this would call a backend proxy for OpenWeatherMap
-      await new Promise(r => setTimeout(r, 1000));
-      return {
-        temp: 28,
-        condition: "Sunny",
-        humidity: 65,
-        wind: 12,
-        rainProb: 15,
-        source: "OpenWeatherMap",
-        lastUpdated: new Date().toISOString(),
-        forecast: [
-          { day: "today", temp: 29, condition: "Partly Cloudy" },
-          { day: "tomorrow", temp: 27, condition: "Rain" },
-          { day: "nextWeek", temp: 30, condition: "Sunny" },
-        ]
-      };
+      const res = await fetch(`/api/weather?location=${encodeURIComponent(district + ", " + state + ", India")}`);
+      if (!res.ok) throw new Error("Failed to fetch weather");
+      return res.json();
     }
   });
 

@@ -56,6 +56,18 @@ function Router() {
     );
   }
 
+  if (user && !profileLoading && !hasCompletedOnboarding) {
+    return (
+      <Switch>
+        <Route path="/profile" component={Profile} />
+        <Route component={() => {
+          useEffect(() => { setLocation("/profile"); }, []);
+          return null;
+        }} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
       <Route path="/" component={Dashboard} />

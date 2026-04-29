@@ -31,11 +31,10 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
     { href: "/", icon: BarChart3, label: t('dashboard') },
     ...(profile?.role === "trader" ? [
       { href: "/farmers", icon: User, label: "Find Farmers" }
-    ] : [
-      { href: "/prices", icon: Tractor, label: t('marketPrices') },
-      { href: "/advisory", icon: MessageSquareText, label: t('advisory') },
-      { href: "/simulations", icon: Calculator, label: t('simulations') },
-    ]),
+    ] : []),
+    { href: "/prices", icon: Tractor, label: t('marketPrices') },
+    { href: "/advisory", icon: MessageSquareText, label: t('advisory') },
+    { href: "/simulations", icon: Calculator, label: t('simulations') },
     { href: "/messages", icon: MessageSquareText, label: "Messages" },
     { href: "/profile", icon: User, label: t('profile') },
   ];
