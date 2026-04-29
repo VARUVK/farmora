@@ -25,14 +25,15 @@ function Router() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const [location, setLocation] = useLocation();
 
+  const hasCompletedOnboarding = profile && profile.state && profile.district && (profile.role === 'trader' || (profile.crops && profile.crops.length > 0));
+
   useEffect(() => {
     if (!isLoading && user && !profileLoading) {
-      const hasCompletedOnboarding = profile && profile.state && profile.district && profile.crops && profile.crops.length > 0;
       if (!hasCompletedOnboarding && location !== "/profile") {
         setTimeout(() => setLocation("/profile"), 0);
       }
     }
-  }, [user, profile, profileLoading, isLoading, location, setLocation]);
+  }, [user, profile, profileLoading, isLoading, location, setLocation, hasCompletedOnboarding]);
 
   if (isLoading) {
     return (
