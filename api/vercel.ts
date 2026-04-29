@@ -70,22 +70,44 @@ let store = new MemStorage();
 
 const DATA_FILE = "/tmp/farmora_data.json";
 
-function loadData() {
+import { Pool } from "pg";
+
+let pool: Pool | null = null;
+if (process.env.POSTGRES_URL) {
+  pool = new Pool({
+    connectionString: process.env.POSTGRES_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  pool.query(`CREATE TABLE IF NOT EXISTS vercel_store (id INT PRIMARY KEY, data JSONB)`).catch(console.error);
+}
+
+let dataLoaded = false;
+
+async function loadData() {
+  if (dataLoaded) return;
   try {
-    if (fs.existsSync(DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
-      store.users = new Map(data.users || []);
-      store.usersByUsername = new Map(data.usersByUsername || []);
-      store.profiles = new Map(data.profiles || []);
-      store.marketPrices = data.marketPrices || [];
-      store.simulations = new Map(data.simulations || []);
-      store.notifications = new Map(data.notifications || []);
-      store.tasks = new Map(data.tasks || []);
-      store.conversations = new Map(data.conversations || []);
-      store.messagesMap = new Map(data.messagesMap || []);
-      store.userMessages = data.userMessages || [];
-      store.counters = data.counters || store.counters;
+    let rawData = null;
+    if (pool) {
+      const res = await pool.query(`SELECT data FROM vercel_store WHERE id = 1`);
+      if (res.rows.length > 0) rawData = res.rows[0].data;
+    } else if (fs.existsSync(DATA_FILE)) {
+      rawData = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
     }
+    
+    if (rawData) {
+      store.users = new Map(rawData.users || []);
+      store.usersByUsername = new Map(rawData.usersByUsername || []);
+      store.profiles = new Map(rawData.profiles || []);
+      store.marketPrices = rawData.marketPrices || [];
+      store.simulations = new Map(rawData.simulations || []);
+      store.notifications = new Map(rawData.notifications || []);
+      store.tasks = new Map(rawData.tasks || []);
+      store.conversations = new Map(rawData.conversations || []);
+      store.messagesMap = new Map(rawData.messagesMap || []);
+      store.userMessages = rawData.userMessages || [];
+      store.counters = rawData.counters || store.counters;
+    }
+    dataLoaded = true;
   } catch (err) {
     console.error("Error loading data", err);
   }
@@ -106,13 +128,22 @@ function saveData() {
       userMessages: store.userMessages,
       counters: store.counters
     };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(data));
+    if (pool) {
+      // Fire and forget is acceptable here as long as lambda stays alive long enough, 
+      // but returning promise allows await if needed.
+      return pool.query(
+        `INSERT INTO vercel_store (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = $1`,
+        [JSON.stringify(data)]
+      ).catch(console.error);
+    } else {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(data));
+      return Promise.resolve();
+    }
   } catch (err) {
     console.error("Error saving data", err);
+    return Promise.resolve();
   }
 }
-
-loadData();
 
 // ─── Password helpers ───────────────────────────────────────────────
 async function hashPassword(password: string): Promise<string> {
@@ -141,6 +172,14 @@ declare global {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Middleware to ensure data is loaded from Postgres before any route
+app.use(async (req, res, next) => {
+  if (!dataLoaded) {
+    await loadData();
+  }
+  next();
+});
 
 const SessionStore = MemoryStore(session);
 app.set("trust proxy", 1);
