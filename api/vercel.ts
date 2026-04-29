@@ -6,6 +6,7 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import MemoryStore from "memorystore";
+import * as fs from "fs";
 
 const scryptAsync = promisify(scrypt);
 
@@ -43,7 +44,15 @@ interface Task {
   createdAt: Date;
 }
 
-// ─── In-Memory Storage (persists across warm invocations) ───────────
+interface UserMessage {
+  id: number;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  createdAt: Date;
+}
+
+// ─── In-Memory Storage (with /tmp persistence) ───────────
 class MemStorage {
   users = new Map<string, User>();
   usersByUsername = new Map<string, string>();
@@ -54,9 +63,56 @@ class MemStorage {
   tasks = new Map<string, Task[]>();
   conversations = new Map<number, any>();
   messagesMap = new Map<number, any[]>();
-  counters = { profile: 1, mp: 1, sim: 1, notif: 1, task: 1, conv: 1, msg: 1 };
+  userMessages: UserMessage[] = [];
+  counters = { profile: 1, mp: 1, sim: 1, notif: 1, task: 1, conv: 1, msg: 1, umsg: 1 };
 }
-const store = new MemStorage();
+let store = new MemStorage();
+
+const DATA_FILE = "/tmp/farmora_data.json";
+
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DATA_FILE, "utf-8"));
+      store.users = new Map(data.users || []);
+      store.usersByUsername = new Map(data.usersByUsername || []);
+      store.profiles = new Map(data.profiles || []);
+      store.marketPrices = data.marketPrices || [];
+      store.simulations = new Map(data.simulations || []);
+      store.notifications = new Map(data.notifications || []);
+      store.tasks = new Map(data.tasks || []);
+      store.conversations = new Map(data.conversations || []);
+      store.messagesMap = new Map(data.messagesMap || []);
+      store.userMessages = data.userMessages || [];
+      store.counters = data.counters || store.counters;
+    }
+  } catch (err) {
+    console.error("Error loading data", err);
+  }
+}
+
+function saveData() {
+  try {
+    const data = {
+      users: Array.from(store.users.entries()),
+      usersByUsername: Array.from(store.usersByUsername.entries()),
+      profiles: Array.from(store.profiles.entries()),
+      marketPrices: store.marketPrices,
+      simulations: Array.from(store.simulations.entries()),
+      notifications: Array.from(store.notifications.entries()),
+      tasks: Array.from(store.tasks.entries()),
+      conversations: Array.from(store.conversations.entries()),
+      messagesMap: Array.from(store.messagesMap.entries()),
+      userMessages: store.userMessages,
+      counters: store.counters
+    };
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data));
+  } catch (err) {
+    console.error("Error saving data", err);
+  }
+}
+
+loadData();
 
 // ─── Password helpers ───────────────────────────────────────────────
 async function hashPassword(password: string): Promise<string> {
@@ -71,30 +127,21 @@ async function comparePasswords(supplied: string, stored: string): Promise<boole
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-// Extend express-session User type
 declare global {
   namespace Express {
     interface User {
-      id: string;
-      username: string;
-      password: string;
-      email: string | null;
-      firstName: string | null;
-      lastName: string | null;
-      profileImageUrl: string | null;
-      createdAt: Date;
-      updatedAt: Date;
+      id: string; username: string; password: string; email: string | null;
+      firstName: string | null; lastName: string | null; profileImageUrl: string | null;
+      createdAt: Date; updatedAt: Date;
     }
   }
 }
 
 // ─── Express App ────────────────────────────────────────────────────
 const app = express();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session
 const SessionStore = MemoryStore(session);
 app.set("trust proxy", 1);
 app.use(
@@ -114,7 +161,6 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Passport strategy
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
@@ -139,12 +185,12 @@ passport.deserializeUser((id: string, done) => {
 app.get("/api/user", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   const u = req.user!;
-  res.json({ id: u.id, username: u.username, email: u.email, firstName: u.firstName, lastName: u.lastName, profileImageUrl: u.profileImageUrl, createdAt: u.createdAt, updatedAt: u.updatedAt });
+  res.json({ ...u });
 });
 
 app.post("/api/register", async (req, res, next) => {
   try {
-    const { username, password, email } = req.body;
+    const { username, password, role } = req.body;
     if (!username || !password) return res.status(400).json({ message: "Username and password required" });
     if (store.usersByUsername.has(username)) return res.status(400).json({ message: "Username already exists" });
 
@@ -153,16 +199,26 @@ app.post("/api/register", async (req, res, next) => {
     const user: User = {
       id, username,
       password: await hashPassword(password),
-      email: email || null,
-      firstName: null, lastName: null, profileImageUrl: null,
+      email: null, firstName: username, lastName: null, profileImageUrl: null,
       createdAt: now, updatedAt: now,
     };
     store.users.set(id, user);
     store.usersByUsername.set(username, id);
+    
+    // Create initial profile linking the role
+    const newProfile: Profile = {
+      id: store.counters.profile++,
+      userId: id,
+      role: role || "farmer",
+      state: null, district: null, crops: [],
+      metadata: {},
+    };
+    store.profiles.set(id, newProfile);
+    saveData();
 
     req.login(user, (err) => {
       if (err) return next(err);
-      res.status(201).json({ id: user.id, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, createdAt: user.createdAt, updatedAt: user.updatedAt });
+      res.status(201).json(user);
     });
   } catch (err) {
     next(err);
@@ -175,7 +231,7 @@ app.post("/api/login", (req, res, next) => {
     if (!user) return res.status(401).json({ message: "Invalid username or password" });
     req.login(user, (err) => {
       if (err) return next(err);
-      res.json({ id: user.id, username: user.username, email: user.email, firstName: user.firstName, lastName: user.lastName, profileImageUrl: user.profileImageUrl, createdAt: user.createdAt, updatedAt: user.updatedAt });
+      res.json(user);
     });
   })(req, res, next);
 });
@@ -202,6 +258,7 @@ app.put("/api/profiles/me", (req, res) => {
   if (existing) {
     const updated = { ...existing, ...req.body };
     store.profiles.set(userId, updated);
+    saveData();
     res.json(updated);
   } else {
     const newProfile: Profile = {
@@ -214,28 +271,88 @@ app.put("/api/profiles/me", (req, res) => {
       metadata: req.body.metadata || null,
     };
     store.profiles.set(userId, newProfile);
+    saveData();
     res.json(newProfile);
   }
 });
 
-// ─── Market Prices ──────────────────────────────────────────────────
-app.get("/api/market-prices", (_req, res) => {
-  res.json(store.marketPrices);
+// ─── Farmers & Traders Routes ─────────────────────────────────────────
+app.get("/api/farmers", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const allProfiles = Array.from(store.profiles.values());
+  const farmers = allProfiles.filter(p => p.role === "farmer");
+  const enriched = farmers.map(f => {
+    const u = store.users.get(f.userId);
+    return { ...f, user: { firstName: u?.firstName, lastName: u?.lastName, username: u?.username } };
+  });
+  res.json(enriched);
 });
+
+// ─── User to User Messaging ──────────────────────────────────────────
+app.get("/api/user-messages", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const uid = req.user!.id;
+  const msgs = store.userMessages.filter(m => m.senderId === uid || m.receiverId === uid);
+  
+  // Also get a list of users we have interacted with to enrich
+  const otherUserIds = new Set<string>();
+  msgs.forEach(m => {
+    if (m.senderId !== uid) otherUserIds.add(m.senderId);
+    if (m.receiverId !== uid) otherUserIds.add(m.receiverId);
+  });
+  
+  const usersInfo = Array.from(otherUserIds).map(id => {
+    const u = store.users.get(id);
+    const p = store.profiles.get(id);
+    return { id, username: u?.username, firstName: u?.firstName, role: p?.role };
+  });
+  
+  res.json({ messages: msgs, users: usersInfo });
+});
+
+app.post("/api/user-messages", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const uid = req.user!.id;
+  const { receiverId, content } = req.body;
+  
+  const msg: UserMessage = {
+    id: store.counters.umsg++,
+    senderId: uid,
+    receiverId,
+    content,
+    createdAt: new Date()
+  };
+  
+  store.userMessages.push(msg);
+  saveData();
+  res.status(201).json(msg);
+});
+
+app.get("/api/users", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const usrs = Array.from(store.users.values()).map(u => {
+    const p = store.profiles.get(u.id);
+    return { id: u.id, username: u.username, firstName: u.firstName, role: p?.role || "farmer" };
+  });
+  res.json(usrs);
+});
+
+// ─── Market Prices ──────────────────────────────────────────────────
+app.get("/api/market-prices", (_req, res) => res.json(store.marketPrices));
 
 // ─── Simulations ────────────────────────────────────────────────────
 app.get("/api/simulations", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   res.json(store.simulations.get(req.user!.id) || []);
 });
-
 app.post("/api/simulations", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   const userId = req.user!.id;
-  const sim = { id: store.counters.sim++, userId, crop: req.body.crop, inputs: req.body.inputs, results: req.body.results, createdAt: new Date() };
   const arr = store.simulations.get(userId) || [];
+  const sim = { id: store.counters.sim++, userId, crop: req.body.crop, inputs: req.body.inputs, results: req.body.results, createdAt: new Date() };
   arr.push(sim);
   store.simulations.set(userId, arr);
+  saveData();
   res.status(201).json(sim);
 });
 
@@ -244,7 +361,6 @@ app.get("/api/notifications", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   res.json(store.notifications.get(req.user!.id) || []);
 });
-
 app.patch("/api/notifications/:id/read", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   const id = parseInt(req.params.id);
@@ -252,6 +368,7 @@ app.patch("/api/notifications/:id/read", (req, res) => {
   const n = notifs.find((x) => x.id === id);
   if (!n) return res.status(404).json({ message: "Not found" });
   n.read = true;
+  saveData();
   res.json(n);
 });
 
@@ -260,26 +377,16 @@ app.get("/api/tasks", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   res.json(store.tasks.get(req.user!.id) || []);
 });
-
 app.post("/api/tasks", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   const userId = req.user!.id;
-  const task: Task = {
-    id: store.counters.task++,
-    userId,
-    title: req.body.title,
-    description: req.body.description ?? null,
-    completed: false,
-    category: req.body.category,
-    dueDate: new Date(req.body.dueDate),
-    createdAt: new Date(),
-  };
   const arr = store.tasks.get(userId) || [];
+  const task: Task = { id: store.counters.task++, userId, title: req.body.title, description: req.body.description ?? null, completed: false, category: req.body.category, dueDate: new Date(req.body.dueDate), createdAt: new Date() };
   arr.push(task);
   store.tasks.set(userId, arr);
+  saveData();
   res.status(201).json(task);
 });
-
 app.patch("/api/tasks/:id", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   const id = parseInt(req.params.id);
@@ -287,65 +394,42 @@ app.patch("/api/tasks/:id", (req, res) => {
   const t = tasks.find((x) => x.id === id);
   if (!t) return res.status(404).json({ message: "Not found" });
   Object.assign(t, req.body);
+  saveData();
   res.json(t);
 });
 
-// ─── Conversations / Advisory ───────────────────────────────────────
+// ─── AI Advisory Conversations ───────────────────────────────────────
 app.get("/api/conversations", (_req, res) => {
-  const all = Array.from(store.conversations.values()).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const all = Array.from(store.conversations.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   res.json(all);
 });
-
 app.post("/api/conversations", (req, res) => {
   const id = store.counters.conv++;
   const conv = { id, title: req.body.title || "New Chat", createdAt: new Date() };
   store.conversations.set(id, conv);
+  saveData();
   res.status(201).json(conv);
 });
-
 app.post("/api/conversations/:id/messages", async (req, res) => {
   const conversationId = parseInt(req.params.id);
-  const { content } = req.body;
   const msgs = store.messagesMap.get(conversationId) || [];
-
-  const userMsg = { id: store.counters.msg++, conversationId, role: "user", content, createdAt: new Date() };
-  msgs.push(userMsg);
-
-  const botMsg = { id: store.counters.msg++, conversationId, role: "assistant", content: "Thanks for your question! AI advisory features are available when an OpenAI API key is configured.", createdAt: new Date() };
-  msgs.push(botMsg);
+  msgs.push({ id: store.counters.msg++, conversationId, role: "user", content: req.body.content, createdAt: new Date() });
+  msgs.push({ id: store.counters.msg++, conversationId, role: "assistant", content: "Thanks for your question! AI advisory requires an OpenAI API key.", createdAt: new Date() });
   store.messagesMap.set(conversationId, msgs);
-
+  saveData();
   res.json({ messages: msgs });
 });
 
 // ─── Weather (mock) ─────────────────────────────────────────────────
-app.get("/api/weather", (_req, res) => {
-  res.json({
-    temperature: 28,
-    humidity: 65,
-    description: "Partly Cloudy",
-    icon: "02d",
-    windSpeed: 12,
-    rainfall: 0,
-  });
-});
+app.get("/api/weather", (_req, res) => res.json({ temperature: 28, humidity: 65, description: "Partly Cloudy", icon: "02d", windSpeed: 12, rainfall: 0 }));
 
 // ─── Health ─────────────────────────────────────────────────────────
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
 // ─── Error handler ──────────────────────────────────────────────────
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error("API Error:", err);
-  if (!res.headersSent) {
-    res.status(500).json({ message: err.message || "Internal Server Error" });
-  }
+  if (!res.headersSent) res.status(500).json({ message: err.message || "Internal Server Error" });
 });
 
-// ─── Vercel Handler ─────────────────────────────────────────────────
-export default function handler(req: Request, res: Response) {
-  return app(req, res);
-}
+export default function handler(req: Request, res: Response) { return app(req, res); }

@@ -11,9 +11,18 @@ import { Tractor, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
-const authSchema = z.object({
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.string().optional()
+});
+
+const registerSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.enum(["farmer", "trader"], { required_error: "Role is required" }),
 });
 
 export default function AuthPage() {
@@ -64,8 +73,8 @@ export default function AuthPage() {
 
 function AuthForm({ mode, onSubmit, isLoading }: { mode: 'login' | 'register', onSubmit: any, isLoading: boolean }) {
   const form = useForm({
-    resolver: zodResolver(authSchema),
-    defaultValues: { username: "", password: "" }
+    resolver: zodResolver(mode === 'login' ? loginSchema : registerSchema),
+    defaultValues: { username: "", password: "", role: "farmer" }
   });
 
   return (
@@ -84,6 +93,28 @@ function AuthForm({ mode, onSubmit, isLoading }: { mode: 'login' | 'register', o
           <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
         )}
       </div>
+      
+      {mode === 'register' && (
+        <div className="space-y-2">
+          <Label htmlFor="role">I am a</Label>
+          <Select 
+            value={form.watch("role")} 
+            onValueChange={(val) => form.setValue("role", val)}
+            disabled={isLoading}
+          >
+            <SelectTrigger id="role">
+              <SelectValue placeholder="Select your role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="farmer">Farmer</SelectItem>
+              <SelectItem value="trader">Trader/Buyer</SelectItem>
+            </SelectContent>
+          </Select>
+          {form.formState.errors.role && (
+            <p className="text-sm text-destructive">{form.formState.errors.role.message}</p>
+          )}
+        </div>
+      )}
       <Button type="submit" className="w-full h-11" disabled={isLoading}>
         {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
         {mode === 'login' ? 'Sign In' : 'Create Account'}

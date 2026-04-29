@@ -193,55 +193,59 @@ export default function Profile() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Soil Type</Label>
-                  <Select 
-                    value={form.watch("soilType")} 
-                    onValueChange={(val) => form.setValue("soilType", val)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Soil Type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOIL_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {form.watch("role") === "farmer" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Soil Type</Label>
+                      <Select 
+                        value={form.watch("soilType")} 
+                        onValueChange={(val) => form.setValue("soilType", val)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Soil Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SOIL_TYPES.map(type => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Irrigation Type</Label>
-                  <Select 
-                    value={form.watch("irrigationType")} 
-                    onValueChange={(val) => form.setValue("irrigationType", val)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Irrigation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {IRRIGATION_TYPES.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="space-y-2">
+                      <Label>Irrigation Type</Label>
+                      <Select 
+                        value={form.watch("irrigationType")} 
+                        onValueChange={(val) => form.setValue("irrigationType", val)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Irrigation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {IRRIGATION_TYPES.map(type => (
+                            <SelectItem key={type} value={type}>{type}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Land Size (Acres)</Label>
-                  <Input {...form.register("landSize")} type="number" step="0.1" placeholder="e.g. 5.5" />
-                </div>
+                    <div className="space-y-2">
+                      <Label>Land Size (Acres)</Label>
+                      <Input {...form.register("landSize")} type="number" step="0.1" placeholder="e.g. 5.5" />
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="space-y-4">
-                <Label>Crops Grown (Select all that apply)</Label>
+                <Label>{form.watch("role") === "trader" ? "Interested Crops (Select all that apply)" : "Crops Grown (Select all that apply)"}</Label>
                 <div className="grid grid-cols-1 gap-6">
                   {Object.entries(CROPS).map(([category, crops]) => (
                     <div key={category} className="space-y-3">
                       <h4 className="text-sm font-semibold text-muted-foreground">{category}</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         {crops.map((crop) => (
-                          <div key={crop} className="flex items-center space-x-2 border p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <div key={crop} className="flex flex-row items-start space-x-3 border p-3 rounded-lg hover:bg-muted/50 transition-colors h-full">
                             <Checkbox 
                               id={crop} 
                               checked={form.watch("crops")?.includes(crop)}
@@ -253,10 +257,11 @@ export default function Profile() {
                                   form.setValue("crops", current.filter(c => c !== crop));
                                 }
                               }}
+                              className="shrink-0"
                             />
                             <label
                               htmlFor={crop}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer w-full"
+                              className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1 break-words"
                             >
                               {crop}
                             </label>

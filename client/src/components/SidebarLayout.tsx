@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
+import { useProfile } from "@/hooks/use-farm-data";
 import {
   Sheet,
   SheetContent,
@@ -24,11 +25,18 @@ export function SidebarLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const { t, setLanguage, language } = useLanguage();
 
+  const { data: profile } = useProfile();
+  
   const navItems = [
     { href: "/", icon: BarChart3, label: t('dashboard') },
-    { href: "/prices", icon: Tractor, label: t('marketPrices') },
-    { href: "/advisory", icon: MessageSquareText, label: t('advisory') },
-    { href: "/simulations", icon: Calculator, label: t('simulations') },
+    ...(profile?.role === "trader" ? [
+      { href: "/farmers", icon: User, label: "Find Farmers" }
+    ] : [
+      { href: "/prices", icon: Tractor, label: t('marketPrices') },
+      { href: "/advisory", icon: MessageSquareText, label: t('advisory') },
+      { href: "/simulations", icon: Calculator, label: t('simulations') },
+    ]),
+    { href: "/messages", icon: MessageSquareText, label: "Messages" },
     { href: "/profile", icon: User, label: t('profile') },
   ];
 

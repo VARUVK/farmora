@@ -16,6 +16,8 @@ import Prices from "@/pages/Prices";
 import Advisory from "@/pages/Advisory";
 import Simulations from "@/pages/Simulations";
 import Profile from "@/pages/Profile";
+import Messages from "@/pages/Messages";
+import FarmerList from "@/pages/FarmerList";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -61,6 +63,8 @@ function Router() {
       <Route path="/advisory" component={Advisory} />
       <Route path="/simulations" component={Simulations} />
       <Route path="/profile" component={Profile} />
+      <Route path="/messages" component={Messages} />
+      <Route path="/farmers" component={FarmerList} />
       <Route component={NotFound} />
     </Switch>
   );
