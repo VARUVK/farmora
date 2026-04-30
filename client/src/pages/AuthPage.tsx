@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tractor, Loader2 } from "lucide-react";
+import { Tractor, Loader2, Chrome } from "lucide-react";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 
@@ -26,7 +26,7 @@ const registerSchema = z.object({
 });
 
 export default function AuthPage() {
-  const { user, login, register, isLoggingIn, isRegistering } = useAuth();
+  const { user, login, register, googleSignIn, isLoggingIn, isRegistering } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -56,6 +56,33 @@ export default function AuthPage() {
               <AuthForm mode="register" onSubmit={register} isLoading={isRegistering} />
             </TabsContent>
           </Tabs>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-slate-50 px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+
+          <Button 
+            variant="outline" 
+            className="w-full h-11 border-slate-300 hover:bg-slate-100 transition-colors gap-3" 
+            onClick={() => {
+              // Mock Google Login
+              googleSignIn({
+                email: "test_farmer@google.com",
+                firstName: "Aditya",
+                lastName: "Kumar",
+                photoUrl: "https://api.dicebear.com/7.x/avataaars/svg?seed=Aditya",
+                googleId: "mock_12345"
+              });
+            }}
+          >
+            <Chrome className="h-5 w-5 text-red-500" />
+            Sign in with Google
+          </Button>
         </div>
       </div>
       

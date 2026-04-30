@@ -24,9 +24,15 @@ const profileSchema = z.object({
   district: z.string().min(1, "District is required"),
   crops: z.array(z.string()).min(1, "Select at least one crop"),
   consentToShareContact: z.boolean().default(false),
+  phone: z.string().optional(),
+  // Farmer specific
   soilType: z.string().optional(),
   irrigationType: z.string().optional(),
   landSize: z.string().optional(),
+  // Trader specific
+  businessName: z.string().optional(),
+  tradeLicense: z.string().optional(),
+  procurementCapacity: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -48,9 +54,13 @@ export default function Profile() {
       district: "",
       crops: [],
       consentToShareContact: false,
+      phone: "",
       soilType: "",
       irrigationType: "",
       landSize: "",
+      businessName: "",
+      tradeLicense: "",
+      procurementCapacity: "",
     },
   });
 
@@ -66,24 +76,32 @@ export default function Profile() {
         district: profile.district || "",
         crops: profile.crops || [],
         consentToShareContact: (profile.metadata as any)?.consentToShareContact || false,
+        phone: (profile.metadata as any)?.phone || "",
         soilType: (profile.metadata as any)?.soilType || "",
         irrigationType: (profile.metadata as any)?.irrigationType || "",
         landSize: (profile.metadata as any)?.landSize || "",
+        businessName: (profile.metadata as any)?.businessName || "",
+        tradeLicense: (profile.metadata as any)?.tradeLicense || "",
+        procurementCapacity: (profile.metadata as any)?.procurementCapacity || "",
       });
     }
   }, [profile, form]);
 
   const onSubmit = async (values: ProfileFormValues) => {
     try {
-      const { consentToShareContact, soilType, irrigationType, landSize, ...rest } = values;
+      const { consentToShareContact, phone, soilType, irrigationType, landSize, businessName, tradeLicense, procurementCapacity, ...rest } = values;
       await updateProfile.mutateAsync({
         ...rest,
         metadata: { 
           ...(profile?.metadata as any || {}),
           consentToShareContact,
+          phone,
           soilType,
           irrigationType,
-          landSize
+          landSize,
+          businessName,
+          tradeLicense,
+          procurementCapacity
         }
       });
       toast({
@@ -193,6 +211,11 @@ export default function Profile() {
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <Label>Phone Number</Label>
+                  <Input {...form.register("phone")} placeholder="+91 98765 43210" />
+                </div>
+
                 {form.watch("role") === "farmer" && (
                   <>
                     <div className="space-y-2">
@@ -232,6 +255,25 @@ export default function Profile() {
                     <div className="space-y-2">
                       <Label>Land Size (Acres)</Label>
                       <Input {...form.register("landSize")} type="number" step="0.1" placeholder="e.g. 5.5" />
+                    </div>
+                  </>
+                )}
+
+                {form.watch("role") === "trader" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Business Name</Label>
+                      <Input {...form.register("businessName")} placeholder="e.g. Green Earth Trading Co." />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Trade License (GST/APMC)</Label>
+                      <Input {...form.register("tradeLicense")} placeholder="License Number" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Procurement Capacity (Tons/Month)</Label>
+                      <Input {...form.register("procurementCapacity")} type="number" placeholder="e.g. 50" />
                     </div>
                   </>
                 )}

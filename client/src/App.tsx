@@ -25,20 +25,33 @@ function Router() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const [location, setLocation] = useLocation();
 
-  const hasCompletedOnboarding = profile && profile.state && profile.district && (profile.role === 'trader' || (profile.crops && profile.crops.length > 0));
+  const hasCompletedOnboarding = !!(
+    profile && 
+    profile.state && 
+    profile.district && 
+    (profile.role === 'trader' ? (profile.metadata as any)?.businessName : (profile.crops && profile.crops.length > 0))
+  );
 
   useEffect(() => {
+    // Only redirect if we are sure about the auth and profile state
     if (!isLoading && user && !profileLoading) {
-      if (!hasCompletedOnboarding && location !== "/profile") {
-        setTimeout(() => setLocation("/profile"), 0);
+      if (!hasCompletedOnboarding && location !== "/profile" && location !== "/auth") {
+        console.log("Redirecting to profile: Onboarding incomplete", { role: profile?.role, state: profile?.state });
+        setLocation("/profile");
+      } else if (hasCompletedOnboarding && location === "/profile" && !window.location.search.includes("edit=true")) {
+        // If they are on profile but finished, take them to dashboard UNLESS they explicitly want to edit
+        // But for now, let's just let them stay on profile if they went there manually.
       }
     }
   }, [user, profile, profileLoading, isLoading, location, setLocation, hasCompletedOnboarding]);
 
-  if (isLoading) {
+  if (isLoading || (user && profileLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground animate-pulse">Loading your harvest...</p>
+        </div>
       </div>
     );
   }
@@ -50,14 +63,15 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/auth" component={AuthPage} />
         <Route component={() => {
-          useEffect(() => { setLocation("/auth"); }, []);
+          useEffect(() => { if (location !== "/" && location !== "/auth") setLocation("/auth"); }, [location]);
           return null;
         }} />
       </Switch>
     );
   }
 
-  if (user && !profileLoading && !hasCompletedOnboarding) {
+  // If logged in but not onboarded, lock them to profile
+  if (user && !hasCompletedOnboarding && location !== "/profile") {
     return (
       <Switch>
         <Route path="/profile" component={Profile} />

@@ -89,6 +89,21 @@ export function useAuth() {
     logout: logoutMutation.mutate,
     isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
+    googleSignIn: useMutation({
+      mutationFn: async (googleData: any) => {
+        const resp = await fetch(resolveUrl("/api/auth/google"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(googleData),
+          credentials: "include",
+        });
+        if (!resp.ok) throw new Error("Google Sign-In failed");
+        return resp.json();
+      },
+      onSuccess: (user) => {
+        queryClient.setQueryData(["/api/user"], user);
+      },
+    }).mutate,
     error: loginMutation.error || registerMutation.error,
   };
 }

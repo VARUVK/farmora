@@ -275,6 +275,49 @@ app.post("/api/login", (req, res, next) => {
   })(req, res, next);
 });
 
+app.post("/api/auth/google", async (req, res) => {
+  // Mock Google Authentication endpoint
+  // In a real app, you would verify the ID Token from Google here.
+  const { email, firstName, lastName, photoUrl, googleId } = req.body;
+  if (!email) return res.status(400).json({ message: "Email required" });
+
+  const username = email.split("@")[0] + "_" + Math.floor(Math.random() * 1000);
+  let user = Array.from(store.users.values()).find(u => u.email === email);
+
+  if (!user) {
+    user = {
+      id: store.counters.user++,
+      username,
+      password: "google_authenticated", // Placeholder
+      email,
+      firstName: firstName || username,
+      lastName: lastName || "",
+      profileImageUrl: photoUrl || null,
+      createdAt: new Date()
+    };
+    store.users.set(user.id, user);
+    store.usersByUsername.set(user.username, user);
+    
+    // Create initial profile
+    const profile = {
+      id: store.counters.profile++,
+      userId: user.id,
+      role: "farmer",
+      state: null,
+      district: null,
+      crops: [],
+      metadata: {}
+    };
+    store.profiles.set(user.id, profile);
+    saveData();
+  }
+
+  req.login(user, (err) => {
+    if (err) return res.status(500).json({ message: "Login failed" });
+    res.json(user);
+  });
+});
+
 app.post("/api/logout", (req, res, next) => {
   req.logout((err) => {
     if (err) return next(err);
@@ -294,25 +337,19 @@ app.put("/api/profiles/me", (req, res) => {
   if (!req.isAuthenticated()) return res.sendStatus(401);
   const userId = req.user!.id;
   const existing = store.profiles.get(userId);
-  if (existing) {
-    const updated = { ...existing, ...req.body };
-    store.profiles.set(userId, updated);
-    saveData();
-    res.json(updated);
-  } else {
-    const newProfile: Profile = {
-      id: store.counters.profile++,
-      userId,
-      role: req.body.role || "farmer",
-      state: req.body.state || null,
-      district: req.body.district || null,
-      crops: req.body.crops || null,
-      metadata: req.body.metadata || null,
-    };
-    store.profiles.set(userId, newProfile);
-    saveData();
-    res.json(newProfile);
-  }
+  
+  const updated = {
+    ...(existing || { id: store.counters.profile++, userId }),
+    ...req.body,
+    metadata: {
+      ...(existing?.metadata as any || {}),
+      ...(req.body.metadata || {})
+    }
+  };
+  
+  store.profiles.set(userId, updated as any);
+  saveData();
+  res.json(updated);
 });
 
 // ─── Farmers & Traders Routes ─────────────────────────────────────────
@@ -521,6 +558,65 @@ app.get("/api/weather", async (req, res) => {
   } catch (err) {
     res.json({ temp: 28, condition: "Partly Cloudy", humidity: 65, windSpeed: 12, rainProb: 15, source: "Offline Backup", lastUpdated: new Date().toISOString(), forecast: [] });
   }
+});
+
+// ─── Marketplace & Messaging ─────────────────────────────────────────
+app.get("/api/farmers", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const farmers = Array.from(store.profiles.values())
+    .filter(p => p.role === "farmer")
+    .map(p => {
+      const user = store.users.get(p.userId);
+      return {
+        ...p,
+        user: user ? { firstName: user.firstName, lastName: user.lastName, username: user.username } : null
+      };
+    });
+  res.json(farmers);
+});
+
+app.get("/api/user-messages", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const userId = req.user!.id;
+  const messages = store.userMessages.filter(m => m.senderId === userId || m.receiverId === userId);
+  
+  // Get unique users involved in these messages
+  const userIds = new Set<string>();
+  messages.forEach(m => {
+    userIds.add(m.senderId);
+    userIds.add(m.receiverId);
+  });
+  userIds.delete(userId);
+
+  const users = Array.from(userIds).map(uid => {
+    const u = store.users.get(uid);
+    const p = store.profiles.get(uid);
+    return u ? { 
+      id: u.id, 
+      firstName: u.firstName, 
+      username: u.username, 
+      role: p?.role || "user" 
+    } : null;
+  }).filter(Boolean);
+
+  res.json({ messages, users });
+});
+
+app.post("/api/user-messages", (req, res) => {
+  if (!req.isAuthenticated()) return res.sendStatus(401);
+  const { receiverId, content } = req.body;
+  if (!receiverId || !content) return res.status(400).json({ message: "Missing fields" });
+
+  const msg: UserMessage = {
+    id: store.counters.umsg++,
+    senderId: req.user!.id,
+    receiverId,
+    content,
+    createdAt: new Date()
+  };
+  store.userMessages.push(msg);
+  saveData();
+  res.status(201).json(msg);
 });
 
 // ─── Health ─────────────────────────────────────────────────────────
