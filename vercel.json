@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/vercel.ts",
+      "src": "api/index.ts",
       "use": "@vercel/node"
     },
     {
@@ -20,7 +20,7 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "/api/vercel.ts"
+      "dest": "/api/index.ts"
     },
     {
       "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
